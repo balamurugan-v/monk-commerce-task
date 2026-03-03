@@ -1,0 +1,23 @@
+# Coupon Service Local Gitignore
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Unit test / pytest cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local Environment
+.env
+.venv/
+venv/
+
+# IDE files
+.idea/
+.vscode/
+
+# MongoDB/Redis local data (if any)
+data/
