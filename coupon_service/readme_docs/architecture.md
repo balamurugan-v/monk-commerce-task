@@ -1,6 +1,6 @@
-# Coupon Service Architecture (Kissflow Compliant)
+# Coupon Service Architecture
 
-This document outlines the redesigned architecture for the coupon service, aligning with the established conventions and directory structure observed in the existing Kissflow `accounts` service. This ensures consistency, maintainability, and better integration within the larger project ecosystem.
+This document outlines the redesigned architecture for the coupon service, aligning with the established conventions . This ensures consistency, maintainability, and better integration within the larger project ecosystem.
 
 ---
 
@@ -64,7 +64,7 @@ coupon_service/
     -   It is completely decoupled from the web framework.
 
 ### 3.4. `server/`
--   **Purpose:** This is the custom Object-Document Mapper (ODM) or data access layer, mirroring the Kissflow `accounts/server` pattern.
+-   **Purpose:** This is the custom Object-Document Mapper (ODM) or data access layer.
 -   **Responsibilities:**
     -   The `CouponServer` class handles all direct interactions with MongoDB using `pymongo`.
     -   It is responsible for mapping raw MongoDB documents to/from our internal `models.py` objects.

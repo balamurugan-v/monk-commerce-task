@@ -7,7 +7,7 @@ The primary focus of this document is to explore the variety of use cases, edge 
 
 ## 1. Project Overview & High-Level Design
 
-The goal is to create a flexible and extensible REST API for handling different types of coupons, following the standards of the Kissflow ecosystem. The system will be designed as a microservice that can be integrated into a larger e-commerce platform.
+The goal is to create a flexible and extensible REST API for handling different types of coupons, following the standards of ecosystem. The system will be designed as a microservice that can be integrated into a larger e-commerce platform.
 
 The architecture will be centered around a **Flask** application. Flask is a lightweight and flexible Python web framework, which aligns with the existing microservices in the project. Request and response data will be strictly validated using schema validation libraries.
 
@@ -139,7 +139,7 @@ This is the core of the task, exploring the complexity of a real-world coupon sy
 - The initial implementation does not include Redis caching.
 - Enforcing `expires_at` and `usage_limit` is not yet implemented.
 - The initial implementation covers the core "happy path" for each coupon type.
-- The system follows the Kissflow microservice architecture.
+- The system follows the microservice architecture.
 
 ## 8. Future Enhancements
 

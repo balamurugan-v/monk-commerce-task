@@ -1,6 +1,6 @@
-# Detailed Design Patterns & Class Structure (Kissflow Compliant)
+# Detailed Design Patterns & Class Structure
 
-This document provides a detailed breakdown of the GoF (Gang of Four) design patterns and the specific class structure for the coupon service, now fully aligned with Kissflow's established architectural conventions.
+This document provides a detailed breakdown of the GoF (Gang of Four) design patterns and the specific class structure for the coupon service.
 
 ---
 
@@ -42,7 +42,7 @@ This is the **primary pattern** for handling different coupon calculation logics
 
 ## 3. Detailed Class Diagram (Textual Representation)
 
-This diagram shows the inheritance and composition relationships between the key classes, reflecting the Kissflow-compliant structure.
+This diagram shows the inheritance and composition relationships between the key classes.
 
 ```
 +---------------------------+

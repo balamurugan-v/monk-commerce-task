@@ -16,7 +16,7 @@ class SchemaValidation:
 
     def __generate_validation_error_response(self, error_dict: dict, path: str = "", response: dict = None):
         """
-        Get the Marshmallow Validation response as input and formate the data to kissflow error response
+        Get the Marshmallow Validation response as input and formate the data to error response
         :param error_dict: Validated error response
         :param path: current json path of the response json
         :param response:
