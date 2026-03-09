@@ -25,9 +25,11 @@ MOCK_BXGY_COUPON_DATA = {
     "type": CouponType.BXGY,
     "status": CouponStatus.ACTIVE,
     "metadata": {
-        MetadataKeys.BUY_PRODUCTS: [{"product_id": "prod_Y", "quantity": 2}],
-        "get_products": [{"product_id": "prod_Z", "quantity": 1}],
-        "repetition_limit": 1,
+        MetadataKeys.BUY_PRODUCTS: [{"product_id": "prod_Y"}],
+        MetadataKeys.BUY_QUANTITY: 2,
+        MetadataKeys.GET_PRODUCTS: [{"product_id": "prod_Z"}],
+        MetadataKeys.GET_QUANTITY: 1,
+        MetadataKeys.REPETITION_LIMIT: 1,
     },
 }
 
@@ -40,9 +42,7 @@ MOCK_CART_DATA = {
     ]
 }
 
-# --- Mock Coupon Objects (for return values) ---
-# These would typically be created from the MOCK_..._COUPON_DATA by the server layer
-# For testing, we can create them directly
+# --- Mock Coupon Objects ---
 from coupon_service.models import Coupon
 
 
@@ -77,8 +77,10 @@ MOCK_BXGY_COUPON = {
     "type": CouponType.BXGY,
     "status": CouponStatus.ACTIVE,
     "metadata": {
-        MetadataKeys.BUY_PRODUCTS: [{"product_id": "prod_B", "quantity": 1}],
-        "get_products": [{"product_id": "prod_C", "quantity": 1}],
-        MetadataKeys.FIXED_DISCOUNT_AMOUNT: 5.0,  # Simplified for testing
+        MetadataKeys.BUY_PRODUCTS: [{"product_id": "prod_B"}],
+        MetadataKeys.BUY_QUANTITY: 1,
+        MetadataKeys.GET_PRODUCTS: [{"product_id": "prod_C"}],
+        MetadataKeys.GET_QUANTITY: 1,
+        MetadataKeys.REPETITION_LIMIT: 2,
     },
 }

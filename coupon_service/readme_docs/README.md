@@ -9,9 +9,7 @@ The primary focus of this document is to explore the variety of use cases, edge 
 
 The goal is to create a flexible and extensible REST API for handling different types of coupons, following the standards of ecosystem. The system will be designed as a microservice that can be integrated into a larger e-commerce platform.
 
-The architecture will be centered around a **Flask** application. Flask is a lightweight and flexible Python web framework, which aligns with the existing microservices in the project. Request and response data will be strictly validated using schema validation libraries.
-
-The entire service will be containerized using **Docker**. A `docker-compose.yml` file will be used to orchestrate the application container along with **MongoDB** and **Redis** containers, ensuring a consistent development and testing environment.
+The architecture is centered around a **Flask** application using a **Strategy Pattern** for discount calculations, allowing for easy addition of new coupon types in the future.
 
 ## 2. Tech Stack
 
@@ -19,7 +17,7 @@ The entire service will be containerized using **Docker**. A `docker-compose.yml
 - **Schema Validation:** Marshmallow (for request/response validation)
 - **Database:** MongoDB
 - **Containerization:** Docker & Docker Compose
-- **Testing:** Unittest (with a dedicated test MongoDB database)
+- **Testing:** Pytest (with a dedicated test MongoDB database)
 
 ## 3. API Endpoints
 
@@ -30,7 +28,7 @@ The following RESTful endpoints are provided:
 - `POST /api/v1/coupons`: Create a new coupon.
 - `GET /api/v1/coupons`: Retrieve a list of all coupons.
 - `GET /api/v1/coupons/{id}`: Retrieve a specific coupon by its ID.
-- `PUT /api/v1/coupons/{coupon_code}`: Update an existing coupon by its code.
+- `PUT /api/v1/coupons/{id}`: Update an existing coupon by its ID.
 - `DELETE /api/v1/coupons/{id}`: Delete a coupon by its ID.
 
 ### Coupon Application
@@ -51,7 +49,6 @@ The database uses a flexible schema to support different coupon types. A single 
   "type": "string (e.g., 'cart-wise', 'product-wise', 'bxgy')",
   "description": "string",
   "metadata": {
-    // Coupon-specific details and conditions
   },
   "status": "string ('active' or 'inactive')",
   "_created_at": "datetime",
@@ -69,108 +66,74 @@ The database uses a flexible schema to support different coupon types. A single 
   ```
 - **Product-wise:**
   ```json
-  { "product_id": "prod_123", "discount_amount": 5.00 }
+  { "product_id": "prod_123", "discount_percentage": 10.00 }
   ```
-- **BxGy:**
+- **BxGy (Advanced Pool Logic):**
   ```json
   {
-    "buy_products": [{"product_id": "prod_A", "quantity": 2}],
-    "get_products": [{"product_id": "prod_B", "quantity": 1}],
-    "repetition_limit": 3
+    "buy_products": [{"product_id": "prod_A"}, {"product_id": "prod_B"}],
+    "buy_quantity": 3,
+    "get_products": [{"product_id": "prod_C"}],
+    "get_quantity": 1,
+    "repetition_limit": 2
   }
   ```
 
-## 5. Considered Use Cases & Edge Cases
+## 5. Advanced BxGy Logic (Implemented)
 
-This is the core of the task, exploring the complexity of a real-world coupon system.
+The system implements a sophisticated **Pool-Based BxGy Strategy**:
+
+- **Pool Summation:** Sums quantities of all items in the cart belonging to the "Buy" list.
+- **Repetition Logic:** Calculates repetitions using floor division and caps it via `repetition_limit`.
+- **Cheapest First:** Eligible "Get" items are sorted by price ascending, and the cheapest ones are discounted first.
+
+## 6. Item-Level Discount Breakdown (Implemented)
+
+The `apply-coupon` response provides a detailed breakdown of discounts at the item level for full transparency.
+
+**Response Structure Example:**
+```json
+{
+  "updated_cart": {
+    "items": [
+      { "product_id": "P1", "quantity": 6, "price": 50, "total_discount": 0 },
+      { "product_id": "P3", "quantity": 1, "price": 25, "total_discount": 25 } 
+    ],
+    "total_price": 325,
+    "total_discount": 25,
+    "final_price": 300
+  }
+}
+```
+
+## 7. Considered Use Cases & Edge Cases
 
 ### Cart-wise Coupons
-
-- **Implemented:**
-    - A percentage discount is applied if the cart total is above a certain threshold.
-- **Unimplemented / To Consider:**
-    - **Fixed amount discount** (e.g., $10 off on orders over $100).
-    - **Tiered discounts** (e.g., 10% off for >$100, 15% off for >$200).
-    - **Excluding specific products** from the cart total calculation.
-    - **Stacking:** Can this coupon be used with other coupons? (e.g., a cart-wise discount on top of a product-wise
-      discount).
+- **Implemented:** Percentage discount applied if the cart total is above a certain threshold.
+- **Proportional Distribution:** The discount is spread across all items in the response breakdown.
 
 ### Product-wise Coupons
-
-- **Implemented:**
-    - A fixed or percentage discount on a single product.
-- **Unimplemented / To Consider:**
-    - **Discount on a list of products**.
-    - **Discount on a product category** (e.g., 15% off all "footwear"). This would require product-category
-      relationships.
-    - **Interaction with other discounts:** If a product is eligible for multiple discounts, which one applies? The best
-      one? Or do they stack?
+- **Implemented:** Fixed or percentage discount on a single product.
+- **Interaction:** Handles multiple quantities of the target product.
 
 ### BxGy (Buy X, Get Y) Coupons
+- **Implemented:** "Buy from a set, get from another set" logic.
+- **Repetition limit:** Limits how many times the deal applies per order.
 
-- **Implemented:**
-    - A simple "Buy X of product A, Get Y of product B" logic.
-- **Unimplemented / To Consider:**
-    - **"Buy from a set of products, get from another set"**: e.g., "Buy any 2 T-shirts, get 1 pair of socks free".
-    - **Cheapest item free**: In a "Buy 2, Get 1 Free" scenario for the same product, the discount is the price of one
-      item.
-    - **Partial fulfillment**: What if the user has "buy" items but not "get" items in the cart? The coupon is not
-      applicable. What if they have more "get" items than the coupon allows? Only the specified number of items should
-      be discounted.
-    - **Repetition limit**: If a BxGy coupon has a repetition limit of 2, and the user's cart qualifies for it 3 times,
-      it should only be applied twice.
+## 8. General/Bonus Cases (Future Implementations)
 
-### General/Bonus Cases (Future Implementations)
+- **Coupon Expiration**: Optional `expires_at` date enforcement.
+- **Usage Limits**: Total usage count limits (e.g., first 100 customers).
+- **Redis Caching**: Performance optimization for coupon lookups.
 
-- **Coupon Expiration**: Coupons will have an optional `expires_at` date to enforce time-based validity.
-- **Usage Limits**: A coupon can be limited to a total number of uses (e.g., "for the first 100 customers").
-- **Redis Caching**: Caching of coupon definitions and application results to optimize performance.
-- **User-specific coupons**: Coupons that are tied to a user ID.
-- **Region-specific coupons**: Coupons that are only valid in certain countries or regions.
-
-## 6. Assumptions
+## 9. Assumptions
 
 - All monetary values are in a single, consistent currency.
-- Product information (like price and ID) is provided by the e-commerce platform via the cart object.
+- Product information (price/ID) is provided by the cart object.
 - The API is stateless.
-
-## 7. Limitations of Initial Implementation
-
-- The initial implementation does not include Redis caching.
-- Enforcing `expires_at` and `usage_limit` is not yet implemented.
-- The initial implementation covers the core "happy path" for each coupon type.
-- The system follows the microservice architecture.
-
-## 8. Future Enhancements
-
-- **Redis Integration:** Implement caching and atomic usage counters.
-- **Advanced Stacking Rules:** Develop a rule engine for combining multiple coupons.
-- **Admin UI:** A simple web interface for managing coupons.
-- **Analytics:** Track coupon usage to provide insights.
-- **Asynchronous Tasks:** Use a task queue for background operations.
-- **Authentication & Authorization:** Secure the coupon management endpoints.
 
 ## How to Run the Application
 
-To get the coupon service up and running using Docker Compose:
-
-1.  **Navigate to the service directory:**
-    ```bash
-    cd assessment/coupon_service
-    ```
-2.  **Build and start the containers:** This command will build the Docker image for the Flask application and start all services (Flask app, MongoDB, Redis) in detached mode.
-    ```bash
-    docker-compose up --build -d
-    ```
-3.  **Verify service status (Optional):** To check if the containers are running:
-    ```bash
-    docker-compose ps
-    ```
-4.  **Access the API:** The Flask application will be accessible at `http://localhost:5000`. You can test the health endpoint:
-    ```bash
-    curl http://localhost:5000/health
-    ```
-5.  **Stop the services:** To stop and remove the containers:
-    ```bash
-    docker-compose down
-    ```
+1.  **Navigate to the service directory:** `cd coupon_service`
+2.  **Build and start:** `docker-compose up --build -d`
+3.  **Run Tests:** `export PYTHONPATH=$PYTHONPATH:$(pwd) && python3 -m pytest tests/test_service/test_coupon_service.py`

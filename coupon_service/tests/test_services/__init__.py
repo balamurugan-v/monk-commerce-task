@@ -8,6 +8,7 @@ from coupon_service.tests.mock.mock_data import (
     MOCK_PRODUCT_WISE_COUPON_PRODA,
     MOCK_BXGY_COUPON,
 )
+from coupon_service.utils.constants import SystemFields, DefaultValues, CouponFields, CouponStatus
 
 
 class TestBase(unittest.TestCase):
@@ -30,21 +31,23 @@ class TestBase(unittest.TestCase):
 
         # Insert initial mock coupon data into cls.coupons_collection
         now = datetime.now(timezone.utc)
-        mock_coupon_data_1 = {"_id": "test_id_1", "created_at": now, "updated_at": now, **MOCK_CART_WISE_COUPON_DATA}
-        mock_coupon_data_2 = {"_id": "test_id_2", "created_at": now, "updated_at": now, **MOCK_PRODUCT_WISE_COUPON_DATA}
-        mock_coupon_data_3 = {
-            "_id": "test_id_3",
-            "created_at": now,
-            "updated_at": now,
-            **MOCK_CART_WISE_COUPON_THRESHOLD,
-        }
-        mock_coupon_data_4 = {
-            "_id": "test_id_4",
-            "created_at": now,
-            "updated_at": now,
-            **MOCK_PRODUCT_WISE_COUPON_PRODA,
-        }
-        mock_coupon_data_5 = {"_id": "test_id_5", "created_at": now, "updated_at": now, **MOCK_BXGY_COUPON}
+        
+        def prepare_mock(data, _id):
+            return {
+                SystemFields.ID: _id,
+                SystemFields.CREATED_AT: now,
+                SystemFields.MODIFIED_AT: now,
+                SystemFields.CREATED_BY: DefaultValues.FLOBOT,
+                SystemFields.MODIFIED_BY: DefaultValues.FLOBOT,
+                **data
+            }
+
+        mock_coupon_data_1 = prepare_mock(MOCK_CART_WISE_COUPON_DATA, "test_id_1")
+        mock_coupon_data_2 = prepare_mock(MOCK_PRODUCT_WISE_COUPON_DATA, "test_id_2")
+        mock_coupon_data_3 = prepare_mock(MOCK_CART_WISE_COUPON_THRESHOLD, "test_id_3")
+        mock_coupon_data_4 = prepare_mock(MOCK_PRODUCT_WISE_COUPON_PRODA, "test_id_4")
+        mock_coupon_data_5 = prepare_mock(MOCK_BXGY_COUPON, "test_id_5")
+
         cls.coupons_collection.insert_many(
             [
                 mock_coupon_data_1,
@@ -57,8 +60,9 @@ class TestBase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        pass
         # Explicitly drop the database
-        cls.mongo_client.drop_database(cls.db.name)
-
-        # Close MongoDB connection
-        cls.mongo_client.close()
+        # cls.mongo_client.drop_database(cls.db.name)
+        #
+        # # Close MongoDB connection
+        # cls.mongo_client.close()

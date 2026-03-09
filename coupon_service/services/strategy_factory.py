@@ -13,7 +13,16 @@ class DiscountStrategy(ABC):
 
     @abstractmethod
     def calculate_discount(self, cart: dict, coupon: Coupon) -> float:
-        """Calculates the discount amount for the given cart and coupon."""
+        """Calculates the total discount amount for the given cart and coupon."""
+        pass
+
+    @abstractmethod
+    def get_discount_breakdown(self, cart: dict, coupon: Coupon) -> dict[str, float]:
+        """
+        Returns a mapping of product_id to the total discount applied to that product.
+        Note: This doesn't handle multiple items of same product_id separately in the mapping,
+        but can be adapted if needed.
+        """
         pass
 
 
@@ -21,16 +30,14 @@ class CartWiseStrategy(DiscountStrategy):
     """Strategy for cart-wise coupons."""
 
     def is_applicable(self, cart: dict, coupon: Coupon) -> bool:
-        # Example: Check if cart total meets minimum threshold
         min_cart_total = coupon.metadata.get(MetadataKeys.MIN_CART_TOTAL)
         if min_cart_total is None:
-            return False  # Or raise an error, depending on expected metadata
+            return False
 
         current_cart_total = sum(item[CartKeys.PRICE] * item[CartKeys.QUANTITY] for item in cart.get(CartKeys.ITEMS, []))
         return current_cart_total >= min_cart_total
 
     def calculate_discount(self, cart: dict, coupon: Coupon) -> float:
-        # Example: Apply percentage discount to total
         if not self.is_applicable(cart, coupon):
             return 0.0
 
@@ -41,12 +48,26 @@ class CartWiseStrategy(DiscountStrategy):
         current_cart_total = sum(item[CartKeys.PRICE] * item[CartKeys.QUANTITY] for item in cart.get(CartKeys.ITEMS, []))
         return current_cart_total * (discount_percentage / 100.0)
 
+    def get_discount_breakdown(self, cart: dict, coupon: Coupon) -> dict[str, float]:
+        # For cart-wise, we distribute the total discount across all items proportionally by their value
+        total_discount = self.calculate_discount(cart, coupon)
+        if total_discount <= 0:
+            return {}
+
+        current_cart_total = sum(item[CartKeys.PRICE] * item[CartKeys.QUANTITY] for item in cart.get(CartKeys.ITEMS, []))
+        breakdown = {}
+        for item in cart.get(CartKeys.ITEMS, []):
+            item_total = item[CartKeys.PRICE] * item[CartKeys.QUANTITY]
+            item_discount = (item_total / current_cart_total) * total_discount
+            product_id = item[CartKeys.PRODUCT_ID]
+            breakdown[product_id] = breakdown.get(product_id, 0.0) + item_discount
+        return breakdown
+
 
 class ProductWiseStrategy(DiscountStrategy):
     """Strategy for product-wise coupons."""
 
     def is_applicable(self, cart: dict, coupon: Coupon) -> bool:
-        # Example: Check if specific product is in cart
         target_product_id = coupon.metadata.get(MetadataKeys.PRODUCT_ID)
         if target_product_id is None:
             return False
@@ -57,7 +78,6 @@ class ProductWiseStrategy(DiscountStrategy):
         return False
 
     def calculate_discount(self, cart: dict, coupon: Coupon) -> float:
-        # Example: Apply percentage discount to target product's total
         if not self.is_applicable(cart, coupon):
             return 0.0
 
@@ -73,38 +93,113 @@ class ProductWiseStrategy(DiscountStrategy):
 
         return product_total * (discount_percentage / 100.0)
 
+    def get_discount_breakdown(self, cart: dict, coupon: Coupon) -> dict[str, float]:
+        target_product_id = coupon.metadata.get(MetadataKeys.PRODUCT_ID)
+        discount_percentage = coupon.metadata.get(MetadataKeys.DISCOUNT_PERCENTAGE)
+        if not target_product_id or not discount_percentage:
+            return {}
+
+        breakdown = {}
+        for item in cart.get(CartKeys.ITEMS, []):
+            if item.get(CartKeys.PRODUCT_ID) == target_product_id:
+                item_total = item[CartKeys.PRICE] * item[CartKeys.QUANTITY]
+                item_discount = item_total * (discount_percentage / 100.0)
+                breakdown[target_product_id] = breakdown.get(target_product_id, 0.0) + item_discount
+        return breakdown
+
 
 class BxGyStrategy(DiscountStrategy):
-    """Strategy for Buy X Get Y coupons."""
+    """Strategy for Buy X Get Y coupons using Pool Logic."""
 
     def is_applicable(self, cart: dict, coupon: Coupon) -> bool:
-        # This is a complex strategy, simplified for initial implementation.
-        # Full implementation would involve checking quantities of 'buy_products'
-        # and ensuring 'get_products' can be applied.
-        # For now, let's just check if any 'buy_products' are in the cart.
-        buy_products_config = coupon.metadata.get(MetadataKeys.BUY_PRODUCTS)
-        if not buy_products_config:
+        buy_products_config = coupon.metadata.get(MetadataKeys.BUY_PRODUCTS, [])
+        buy_req_quantity = coupon.metadata.get(MetadataKeys.BUY_QUANTITY)
+        
+        if not buy_products_config or buy_req_quantity is None:
             return False
 
-        cart_product_ids = {item[CartKeys.PRODUCT_ID] for item in cart.get(CartKeys.ITEMS, [])}
+        buy_pool_ids = {p[CartKeys.PRODUCT_ID] for p in buy_products_config}
+        
+        # Calculate total quantity of items in the 'buy' pool
+        total_buy_qty = 0
+        for item in cart.get(CartKeys.ITEMS, []):
+            if item[CartKeys.PRODUCT_ID] in buy_pool_ids:
+                total_buy_qty += item[CartKeys.QUANTITY]
+        
+        # Must have at least one set of buy products
+        if total_buy_qty < buy_req_quantity:
+            return False
 
-        for buy_item in buy_products_config:
-            if buy_item[CartKeys.PRODUCT_ID] in cart_product_ids:
-                return True
-        return False
+        # Also check if there are any 'get' products in the cart to discount
+        get_products_config = coupon.metadata.get(MetadataKeys.GET_PRODUCTS, [])
+        get_pool_ids = {p[CartKeys.PRODUCT_ID] for p in get_products_config}
+        
+        has_get_product = False
+        for item in cart.get(CartKeys.ITEMS, []):
+            if item[CartKeys.PRODUCT_ID] in get_pool_ids:
+                has_get_product = True
+                break
+        
+        return has_get_product
 
     def calculate_discount(self, cart: dict, coupon: Coupon) -> float:
-        # This is a complex strategy, simplified for initial implementation.
-        # Full implementation would involve calculating how many times the BxGy
-        # deal can be applied and the value of the 'get' products.
-        # For now, return a fixed discount if applicable.
-        if not self.is_applicable(cart, coupon):
-            return 0.0
+        breakdown = self.get_discount_breakdown(cart, coupon)
+        return sum(breakdown.values())
 
-        # Placeholder: Assume a fixed discount amount for simplicity
-        # In a real scenario, this would calculate the value of the 'get' items
-        # based on the cart contents and repetition limit.
-        return coupon.metadata.get(MetadataKeys.FIXED_DISCOUNT_AMOUNT, 0.0)
+    def get_discount_breakdown(self, cart: dict, coupon: Coupon) -> dict[str, float]:
+        if not self.is_applicable(cart, coupon):
+            return {}
+
+        # 1. Calculate Repetitions
+        buy_products_config = coupon.metadata.get(MetadataKeys.BUY_PRODUCTS, [])
+        buy_req_quantity = coupon.metadata.get(MetadataKeys.BUY_QUANTITY)
+        buy_pool_ids = {p[CartKeys.PRODUCT_ID] for p in buy_products_config}
+        
+        total_buy_qty = 0
+        for item in cart.get(CartKeys.ITEMS, []):
+            if item[CartKeys.PRODUCT_ID] in buy_pool_ids:
+                total_buy_qty += item[CartKeys.QUANTITY]
+        
+        repetitions = total_buy_qty // buy_req_quantity
+        
+        # 2. Apply Repetition Limit
+        limit = coupon.metadata.get(MetadataKeys.REPETITION_LIMIT)
+        if limit is not None:
+            repetitions = min(repetitions, limit)
+            
+        if repetitions <= 0:
+            return {}
+
+        # 3. Identify 'Get' Pool and sort by price (cheapest first)
+        get_products_config = coupon.metadata.get(MetadataKeys.GET_PRODUCTS, [])
+        get_pool_ids = {p[CartKeys.PRODUCT_ID] for p in get_products_config}
+        get_req_quantity_per_rep = coupon.metadata.get(MetadataKeys.GET_QUANTITY, 1)
+        
+        total_get_to_discount = repetitions * get_req_quantity_per_rep
+        
+        # Collect all eligible 'get' items as individual units to handle sorting
+        eligible_items = []
+        for item in cart.get(CartKeys.ITEMS, []):
+            if item[CartKeys.PRODUCT_ID] in get_pool_ids:
+                # Add each unit individually
+                for _ in range(item[CartKeys.QUANTITY]):
+                    eligible_items.append({
+                        CartKeys.PRODUCT_ID: item[CartKeys.PRODUCT_ID],
+                        CartKeys.PRICE: item[CartKeys.PRICE]
+                    })
+        
+        # Sort by price ascending
+        eligible_items.sort(key=lambda x: x[CartKeys.PRICE])
+        
+        # 4. Calculate Discount
+        breakdown = {}
+        for i in range(min(len(eligible_items), total_get_to_discount)):
+            item = eligible_items[i]
+            pid = item[CartKeys.PRODUCT_ID]
+            price = item[CartKeys.PRICE]
+            breakdown[pid] = breakdown.get(pid, 0.0) + price
+            
+        return breakdown
 
 
 class StrategyFactory:

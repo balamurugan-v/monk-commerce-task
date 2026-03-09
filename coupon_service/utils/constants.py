@@ -28,13 +28,24 @@ class SystemFields:
     MODIFIED_BY = "_modified_by"
 
 
+class CouponFields:
+    COUPON_CODE = "coupon_code"
+    DESCRIPTION = "description"
+    TYPE = "type"
+    STATUS = "status"
+    METADATA = "metadata"
+
+
 class MetadataKeys:
     MIN_CART_TOTAL = "min_cart_total"
     DISCOUNT_PERCENTAGE = "discount_percentage"
     PRODUCT_ID = "product_id"
     BUY_PRODUCTS = "buy_products"
     GET_PRODUCTS = "get_products"
+    BUY_QUANTITY = "buy_quantity"
+    GET_QUANTITY = "get_quantity"
     FIXED_DISCOUNT_AMOUNT = "fixed_discount_amount"
+    REPETITION_LIMIT = "repetition_limit"
 
 
 class CartKeys:
@@ -45,6 +56,35 @@ class CartKeys:
     TOTAL_DISCOUNT = "total_discount"
     FINAL_PRICE = "final_price"
     APPLIED_COUPON = "applied_coupon"
+
+
+class ResponseKeys:
+    DISCOUNT = "discount"
+    MESSAGE = "message"
+    ERROR = "error"
+    UPDATED_CART = "updated_cart"
+    APPLICABLE_COUPONS = "applicable_coupons"
+
+
+class MongoOperators:
+    SET = "$set"
+
+
+class HttpMethods:
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+
+
+class HttpStatusCodes:
+    OK = 200
+    CREATED = 201
+    BAD_REQUEST = 400
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+    CONFLICT = 409
+    INTERNAL_SERVER_ERROR = 500
 
 
 class DefaultValues:

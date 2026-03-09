@@ -19,6 +19,14 @@ class CouponNotFound(CouponServiceError):
         super().__init__(self.message)
 
 
+class CouponInactive(CouponServiceError):
+    """Raised when a coupon is inactive but was requested."""
+
+    def __init__(self, identifier: str):
+        self.message = f"Coupon with ID/Code '{identifier}' is currently inactive."
+        super().__init__(self.message)
+
+
 class CouponAlreadyExists(CouponServiceError):
     """Raised when trying to create a coupon with an existing code."""
 
