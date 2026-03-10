@@ -94,4 +94,4 @@ coupon_service/
 -   **MongoDB:** Used for persistent storage of coupon definitions. The `server/coupon_server.py` handles all interactions.
 -   **Redis (Future Enhancement):** Redis is planned for future versions to provide caching for frequently accessed data and for atomic operations (e.g., managing coupon usage counts).
 
-This redesigned architecture ensures full compliance with the Kissflow project's established patterns.
+This redesigned architecture ensures full compliance with the  project's established patterns.
