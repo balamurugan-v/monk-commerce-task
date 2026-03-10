@@ -56,6 +56,8 @@ class CartKeys:
     TOTAL_DISCOUNT = "total_discount"
     FINAL_PRICE = "final_price"
     APPLIED_COUPON = "applied_coupon"
+    TOTAL_PRICE = "total_price"
+    CART = "cart"
 
 
 class ResponseKeys:
@@ -64,6 +66,8 @@ class ResponseKeys:
     ERROR = "error"
     UPDATED_CART = "updated_cart"
     APPLICABLE_COUPONS = "applicable_coupons"
+    COUPON_ID = "coupon_id"
+    DISCOUNT_APPLIED = "discount_applied"
 
 
 class MongoOperators:

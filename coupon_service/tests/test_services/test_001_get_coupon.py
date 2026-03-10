@@ -1,7 +1,7 @@
 from coupon_service.services.coupon_service import CouponService
 from coupon_service.utils.constants import CouponStatus, CouponFields, MetadataKeys, MongoOperators
 from coupon_service.utils.errors import CouponNotFound, CouponInactive
-from tests.test_services import TestBase
+from coupon_service.tests.test_services import TestBase
 
 
 class TestGetCoupon(TestBase):

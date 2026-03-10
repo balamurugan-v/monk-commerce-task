@@ -4,7 +4,7 @@ from coupon_service.services.coupon_service import CouponService
 
 from coupon_service.utils.constants import CouponType, CouponStatus, MetadataKeys, CouponFields
 from coupon_service.utils.errors import CouponAlreadyExists
-from tests.test_services import TestBase
+from coupon_service.tests.test_services import TestBase
 
 
 class TestCreateCoupon(TestBase):

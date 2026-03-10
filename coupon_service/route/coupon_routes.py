@@ -1,18 +1,17 @@
 from flask import Blueprint, jsonify, request
-from coupon_service.utils.errors import (
-    CouponNotFound,
-    CouponAlreadyExists,
-    CouponInactive
-)
-from coupon_service.services.coupon_service import CouponService
+
 from coupon_service.schema.coupon_schema import (
     CouponCreateSchema,
     CouponUpdateSchema,
     CouponResponseSchema,
     ApplyCouponRequestSchema,
 )
+from coupon_service.services.coupon_service import CouponService
+from coupon_service.utils.constants import *
 from coupon_service.utils.custom_schema_validation import SchemaValidation
-from coupon_service.utils.constants import BlueprintNames, HttpStatusCodes, HttpMethods, ResponseKeys
+from coupon_service.utils.errors import (
+    handle_exception
+)
 
 # Create a Blueprint for the coupon API
 coupon_api_blueprint = Blueprint(BlueprintNames.COUPON_API, __name__)
@@ -28,10 +27,9 @@ def create_coupon():
     try:
         coupon_service = CouponService()
         coupon_service.create_coupon(params)
-        return (jsonify({ResponseKeys.MESSAGE: "Coupon has been created."}),
-                HttpStatusCodes.CREATED)
-    except CouponAlreadyExists as e:
-        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.CONFLICT
+        return jsonify({ResponseKeys.MESSAGE: "Coupon has been created."}), HttpStatusCodes.CREATED
+    except Exception as e:
+        return handle_exception(e)
 
 
 @coupon_api_blueprint.route("/coupons", methods=[HttpMethods.GET])
@@ -55,10 +53,8 @@ def get_coupon_by_code(coupon_code):
         coupon = coupon_service.get_coupon_by_code(coupon_code)
         response_schema = CouponResponseSchema()
         return jsonify(response_schema.dump(coupon)), HttpStatusCodes.OK
-    except CouponNotFound as e:
-        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.NOT_FOUND
-    except CouponInactive as e:
-        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.FORBIDDEN
+    except Exception as e:
+        return handle_exception(e)
 
 
 @coupon_api_blueprint.route("/coupons/<coupon_code>", methods=[HttpMethods.PUT])
@@ -68,15 +64,12 @@ def update_coupon(coupon_code):
     """
     params = request.get_json()
     SchemaValidation(CouponUpdateSchema()).validate_payload(params, partial=True)
-
     try:
         coupon_service = CouponService()
         coupon_service.update_coupon(coupon_code, params)
         return jsonify({ResponseKeys.MESSAGE: "Coupon has been updated."}), HttpStatusCodes.OK
-    except CouponNotFound as e:
-        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.NOT_FOUND
-    except CouponInactive as e:
-        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.FORBIDDEN
+    except Exception as e:
+        return handle_exception(e)
 
 
 @coupon_api_blueprint.route("/coupons/<coupon_code>", methods=[HttpMethods.DELETE])
@@ -87,12 +80,9 @@ def delete_coupon(coupon_code):
     try:
         coupon_service = CouponService()
         coupon_service.delete_coupon(coupon_code)
-        return (
-            jsonify({ResponseKeys.MESSAGE: f"Coupon with code {coupon_code} has been deleted."}),
-            HttpStatusCodes.OK,
-        )
-    except CouponNotFound as e:
-        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.NOT_FOUND
+        return jsonify({ResponseKeys.MESSAGE: f"Coupon with code {coupon_code} has been deleted."}), HttpStatusCodes.OK
+    except Exception as e:
+        return handle_exception(e)
 
 
 @coupon_api_blueprint.route("/applicable-coupons", methods=[HttpMethods.POST])
@@ -102,13 +92,12 @@ def get_applicable_coupons():
     """
     params = request.get_json()
     SchemaValidation(ApplyCouponRequestSchema()).validate_payload(params)
-
     try:
         coupon_service = CouponService()
-        applicable_coupons = coupon_service.get_applicable_coupons(params["cart"])
-        return jsonify({ResponseKeys.APPLICABLE_COUPONS: applicable_coupons}), HttpStatusCodes.OK
+        return (jsonify({ResponseKeys.APPLICABLE_COUPONS: coupon_service.get_applicable_coupons(params["cart"])}),
+                HttpStatusCodes.OK)
     except Exception as e:
-        return jsonify({ResponseKeys.ERROR: str(e)}), HttpStatusCodes.INTERNAL_SERVER_ERROR
+        return handle_exception(e)
 
 
 @coupon_api_blueprint.route("/apply-coupon/<coupon_code>", methods=[HttpMethods.POST])
@@ -126,10 +115,5 @@ def apply_coupon(coupon_code):
             cart=params["cart"],
         )
         return jsonify(updated_cart_response), HttpStatusCodes.OK
-    except (CouponNotFound, CouponInactive) as e:
-        status_code = HttpStatusCodes.NOT_FOUND if isinstance(e, CouponNotFound) else HttpStatusCodes.FORBIDDEN
-        return jsonify({ResponseKeys.ERROR: e.message}), status_code
-    except ValueError as e:
-        return jsonify({ResponseKeys.ERROR: str(e)}), HttpStatusCodes.BAD_REQUEST
     except Exception as e:
-        return jsonify({ResponseKeys.ERROR: str(e)}), HttpStatusCodes.INTERNAL_SERVER_ERROR
+        return handle_exception(e)

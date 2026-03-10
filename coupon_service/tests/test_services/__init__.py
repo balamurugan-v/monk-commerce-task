@@ -60,9 +60,9 @@ class TestBase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        pass
         # Explicitly drop the database
-        # cls.mongo_client.drop_database(cls.db.name)
-        #
-        # # Close MongoDB connection
-        # cls.mongo_client.close()
+        cls.mongo_client.drop_database(cls.db.name)
+
+        # Close MongoDB connection
+        cls.mongo_client.close()
+

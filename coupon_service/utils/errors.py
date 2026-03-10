@@ -1,6 +1,29 @@
 """
 Custom error definitions for the Coupon Service.
 """
+from flask import jsonify
+from coupon_service.utils.constants import ResponseKeys, HttpStatusCodes
+
+
+def handle_exception(e: Exception):
+    """
+    Common error handler for all API exceptions.
+    Returns a tuple of (response_json, status_code).
+    """
+    if isinstance(e, CouponNotFound):
+        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.NOT_FOUND
+
+    if isinstance(e, (CouponInactive, CouponLimitReachedError)):
+        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.FORBIDDEN
+
+    if isinstance(e, CouponAlreadyExists):
+        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.CONFLICT
+
+    if isinstance(e, ValueError):
+        return jsonify({ResponseKeys.ERROR: str(e)}), HttpStatusCodes.BAD_REQUEST
+
+    # Fallback for any other exceptions
+    return jsonify({ResponseKeys.ERROR: str(e)}), HttpStatusCodes.INTERNAL_SERVER_ERROR
 
 
 class CouponServiceError(Exception):
@@ -32,6 +55,14 @@ class CouponAlreadyExists(CouponServiceError):
 
     def __init__(self, coupon_code: str):
         self.message = f"Coupon with code '{coupon_code}' already exists."
+        super().__init__(self.message)
+
+
+class CouponLimitReachedError(CouponServiceError):
+    """Raised when a coupon's repetition limit is 0 or has been met."""
+
+    def __init__(self, coupon_code: str):
+        self.message = f"You have reached the limit for coupon '{coupon_code}'."
         super().__init__(self.message)
 
 

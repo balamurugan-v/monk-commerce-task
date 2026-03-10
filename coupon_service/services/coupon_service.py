@@ -1,8 +1,8 @@
 from coupon_service.models import Coupon
 from coupon_service.server.coupon_server import CouponServer, UserCouponPurchaseServer
-from coupon_service.utils.errors import CouponNotFound, CouponInactive
+from coupon_service.utils.errors import CouponNotFound, CouponInactive, CouponLimitReachedError
 from coupon_service.services.strategy_factory import StrategyFactory
-from coupon_service.utils.constants import CouponStatus, CartKeys, CouponFields
+from coupon_service.utils.constants import CouponStatus, CartKeys, CouponFields, ResponseKeys, MetadataKeys
 
 
 class CouponService:
@@ -103,14 +103,14 @@ class CouponService:
                     if discount_amount > 0:
                         applicable_coupons_info.append(
                             {
-                                "coupon_id": coupon._id,
-                                "coupon_code": coupon.coupon_code,
-                                "type": coupon.type,
-                                "description": coupon.description,
-                                "discount": discount_amount,
+                                ResponseKeys.COUPON_ID: coupon._id,
+                                CouponFields.COUPON_CODE: coupon.coupon_code,
+                                CouponFields.TYPE: coupon.type,
+                                CouponFields.DESCRIPTION: coupon.description,
+                                ResponseKeys.DISCOUNT: discount_amount,
                             }
                         )
-            except ValueError:
+            except (ValueError, CouponLimitReachedError):
                 continue
         return applicable_coupons_info
 
@@ -124,6 +124,10 @@ class CouponService:
             
         if coupon.status != CouponStatus.ACTIVE:
             raise CouponInactive(coupon_code)
+
+        # Check repetition limit explicitly to raise specific error
+        if coupon.metadata.get(MetadataKeys.REPETITION_LIMIT) == 0:
+            raise CouponLimitReachedError(coupon_code)
 
         strategy = self.strategy_factory.get_strategy(coupon.type)
         if not strategy.is_applicable(cart, coupon):
@@ -152,17 +156,17 @@ class CouponService:
 
         updated_cart = {
             CartKeys.ITEMS: updated_items,
-            "total_price": current_total_price,
+            CartKeys.TOTAL_PRICE: current_total_price,
             CartKeys.TOTAL_DISCOUNT: total_discount,
             CartKeys.FINAL_PRICE: final_total
         }
 
         self.user_coupon_purchase_server.insert_purchase_record({
-            "coupon_id": coupon._id,
-            "coupon_code": coupon.coupon_code,
-            "cart": cart,
-            "discount_applied": total_discount,
-            "final_price": final_total
+            ResponseKeys.COUPON_ID: coupon._id,
+            CouponFields.COUPON_CODE: coupon.coupon_code,
+            CartKeys.CART: cart,
+            ResponseKeys.DISCOUNT_APPLIED: total_discount,
+            CartKeys.FINAL_PRICE: final_total
         })
 
-        return {"updated_cart": updated_cart}
+        return {ResponseKeys.UPDATED_CART: updated_cart}

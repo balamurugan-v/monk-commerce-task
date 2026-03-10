@@ -2,9 +2,9 @@
 
 from coupon_service.services.coupon_service import CouponService
 
-from coupon_service.utils.constants import CouponStatus, CouponFields, CartKeys, ResponseKeys, MongoOperators
-from coupon_service.utils.errors import CouponInactive
-from tests.test_services import TestBase
+from coupon_service.utils.constants import CouponStatus, CouponFields, CartKeys, ResponseKeys, MongoOperators, MetadataKeys, CouponType
+from coupon_service.utils.errors import CouponInactive, CouponLimitReachedError
+from coupon_service.tests.test_services import TestBase
 
 
 class TestApplyCoupon(TestBase):
@@ -72,3 +72,52 @@ class TestApplyCoupon(TestBase):
         cart = {CartKeys.ITEMS: [{CartKeys.PRODUCT_ID: "A", CartKeys.QUANTITY: 1, CartKeys.PRICE: 10.0}]}
         with self.assertRaises(ValueError):
             self.coupon_service.apply_coupon_to_cart("CART100OFF10", cart)
+
+    def test_apply_negative_repetition_limit_reached(self):
+        """Negative: Raise CouponLimitReachedError when limit is 0."""
+        code = "LIMIT_ZERO"
+        self.coupon_service.create_coupon({
+            CouponFields.COUPON_CODE: code,
+            CouponFields.TYPE: CouponType.BXGY,
+            CouponFields.DESCRIPTION: "d",
+            CouponFields.METADATA: {
+                MetadataKeys.BUY_PRODUCTS: [{"product_id": "prod_B"}],
+                MetadataKeys.BUY_QUANTITY: 1,
+                MetadataKeys.GET_PRODUCTS: [{"product_id": "prod_C"}],
+                MetadataKeys.GET_QUANTITY: 1,
+                MetadataKeys.REPETITION_LIMIT: 0
+            }
+        })
+        cart = {
+            CartKeys.ITEMS: [
+                {CartKeys.PRODUCT_ID: "prod_B", CartKeys.QUANTITY: 1, CartKeys.PRICE: 10.0},
+                {CartKeys.PRODUCT_ID: "prod_C", CartKeys.QUANTITY: 1, CartKeys.PRICE: 5.0}
+            ]
+        }
+        with self.assertRaises(CouponLimitReachedError):
+            self.coupon_service.apply_coupon_to_cart(code, cart)
+
+    def test_apply_bxgy_repetition_logic_comprehensive(self):
+        """Positive: Test multiple repetitions and capping."""
+        code = "REP_TEST"
+        self.coupon_service.create_coupon({
+            CouponFields.COUPON_CODE: code,
+            CouponFields.TYPE: CouponType.BXGY,
+            CouponFields.DESCRIPTION: "Repetition Test",
+            CouponFields.METADATA: {
+                MetadataKeys.BUY_PRODUCTS: [{"product_id": "A"}],
+                MetadataKeys.BUY_QUANTITY: 1,
+                MetadataKeys.GET_PRODUCTS: [{"product_id": "B"}],
+                MetadataKeys.GET_QUANTITY: 1,
+                MetadataKeys.REPETITION_LIMIT: 3
+            }
+        })
+        # 5 A, 5 B. Rep limit 3. Should get 3 B free.
+        cart = {
+            CartKeys.ITEMS: [
+                {CartKeys.PRODUCT_ID: "A", CartKeys.QUANTITY: 5, CartKeys.PRICE: 10.0},
+                {CartKeys.PRODUCT_ID: "B", CartKeys.QUANTITY: 5, CartKeys.PRICE: 5.0}
+            ]
+        }
+        res = self.coupon_service.apply_coupon_to_cart(code, cart)
+        self.assertEqual(res[ResponseKeys.UPDATED_CART][CartKeys.TOTAL_DISCOUNT], 15.0) # 3 * 5.0

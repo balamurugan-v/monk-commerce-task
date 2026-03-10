@@ -7,7 +7,7 @@ from coupon_service.utils.constants import (
     CouponType
 )
 from coupon_service.utils.errors import CouponNotFound, CouponInactive
-from tests.test_services import TestBase
+from coupon_service.tests.test_services import TestBase
 
 
 class TestUpdateCoupon(TestBase):
@@ -61,6 +61,7 @@ class TestUpdateCoupon(TestBase):
     def test_update_metadata_product_wise(self):
         """Positive: Update Product-wise metadata fields."""
         code = "PROD5OFF"
+        self.coupon_service.update_coupon(code, {CouponFields.STATUS: CouponStatus.ACTIVE})
         new_meta = {
             MetadataKeys.PRODUCT_ID: "NEW_PROD_ID",
             MetadataKeys.DISCOUNT_PERCENTAGE: 15
@@ -93,6 +94,7 @@ class TestUpdateCoupon(TestBase):
     def test_update_switch_type_cart_to_product_wise(self):
         """Positive: Change coupon type from cart-wise to product-wise."""
         code = "CART10OFF"
+        self.coupon_service.update_coupon(code, {CouponFields.STATUS: CouponStatus.ACTIVE})
         payload = {
             CouponFields.TYPE: CouponType.PRODUCT_WISE,
             CouponFields.METADATA: {
