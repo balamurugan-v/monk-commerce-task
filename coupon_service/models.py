@@ -1,6 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from coupon_service.utils.constants import CouponStatus, SystemFields, DefaultValues
 
 @dataclass
@@ -13,6 +13,7 @@ class Coupon:
     description: str
     metadata: Dict[str, Any]
     status: str = CouponStatus.ACTIVE
+    expires_at: datetime = None
     _id: str = None
     # System fields managed by the server layer
     _created_at: datetime = None
@@ -28,6 +29,8 @@ class Coupon:
             data[SystemFields.CREATED_AT] = data[SystemFields.CREATED_AT].isoformat()
         if data.get(SystemFields.MODIFIED_AT) and isinstance(data[SystemFields.MODIFIED_AT], datetime):
             data[SystemFields.MODIFIED_AT] = data[SystemFields.MODIFIED_AT].isoformat()
+        if data.get("expires_at") and isinstance(data["expires_at"], datetime):
+            data["expires_at"] = data["expires_at"].isoformat()
         return data
 
     @classmethod
@@ -36,10 +39,20 @@ class Coupon:
         created_at = data.get(SystemFields.CREATED_AT)
         if isinstance(created_at, str):
             created_at = datetime.fromisoformat(created_at)
+        elif isinstance(created_at, datetime) and created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
         
         modified_at = data.get(SystemFields.MODIFIED_AT)
         if isinstance(modified_at, str):
             modified_at = datetime.fromisoformat(modified_at)
+        elif isinstance(modified_at, datetime) and modified_at.tzinfo is None:
+            modified_at = modified_at.replace(tzinfo=timezone.utc)
+            
+        expires_at = data.get("expires_at")
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        elif isinstance(expires_at, datetime) and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
 
         return cls(
             _id=data.get(SystemFields.ID),
@@ -48,6 +61,7 @@ class Coupon:
             description=data.get("description"),
             metadata=data.get("metadata"),
             status=data.get("status"),
+            expires_at=expires_at,
             _created_at=created_at,
             _modified_at=modified_at,
             _created_by=data.get(SystemFields.CREATED_BY, DefaultValues.FLOBOT),

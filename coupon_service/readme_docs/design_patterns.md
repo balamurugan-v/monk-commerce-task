@@ -9,7 +9,8 @@ This document provides a detailed breakdown of the GoF (Gang of Four) design pat
 At a high level, we structure the application using:
 
 -   **Service Layer:** Business logic is encapsulated within `services/coupon_service.py`.
--   **Repository Pattern (Data Access Layer):** Data persistence logic is handled by `server/coupon_server.py` and caching by `cache.py`.
+- **Repository Pattern (Data Access Layer):** Data persistence logic is handled by `server/coupon_server.py`. (Redis caching is planned for future versions).
+
 
 ## 2. GoF (Gang of Four) Design Patterns
 
@@ -67,7 +68,6 @@ This diagram shows the inheritance and composition relationships between the key
 +-----------------+      (creates)      +---------------------------+
 | StrategyFactory | ------------------> | <<Abstract>>              |
 +-----------------+                     | CouponValidationStrategy  |
-| +get_strategy() |                     +---------------------------+
 +-----------------+
 
 
@@ -77,8 +77,8 @@ This diagram shows the inheritance and composition relationships between the key
 | (services/coupon_service.py)|
 +----------------------------+
 | - coupon_server: CouponServer |
-| - cache_manager: CacheManager |
 | - strategy_factory: StrategyFactory |
+| (CacheManager: Future)     |
 +----------------------------+
 | + apply_coupon(code, cart) |
 | + create_coupon(data)      |
@@ -96,12 +96,9 @@ This diagram shows the inheritance and composition relationships between the key
 +----------------------------+
 
 +----------------------------+
-|      <<Cache>>             |
+|      <<Cache>> (Future)    |
 |     CacheManager           |
-| (cache.py)                 |
-+----------------------------+
-| + get_cached_coupon()      |
-| + set_cached_coupon()      |
+| (Redis Caching)            |
 +----------------------------+
 
 +----------------------------+
@@ -135,3 +132,4 @@ This diagram shows the inheritance and composition relationships between the key
 | + create_coupon_endpoint() |
 | + get_coupons_endpoint()   |
 +----------------------------+
+```

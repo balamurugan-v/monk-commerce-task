@@ -104,14 +104,19 @@ class BxGyStrategy(DiscountStrategy):
         if limit == 0:
             return False
 
-        # Same logic as before
         buy_products_config = coupon.metadata.get(MetadataKeys.BUY_PRODUCTS, [])
+        # Support PDF style: quantity inside buy_products
         buy_req_quantity = coupon.metadata.get(MetadataKeys.BUY_QUANTITY)
+        if buy_req_quantity is None and buy_products_config:
+            # Fallback to the first item's quantity if buy_quantity is missing (PDF style)
+            buy_req_quantity = buy_products_config[0].get(MetadataKeys.QUANTITY)
+
         if not buy_products_config or buy_req_quantity is None: return False
         buy_pool_ids = {p[CartKeys.PRODUCT_ID] for p in buy_products_config}
         total_buy_qty = sum(item[CartKeys.QUANTITY] for item in cart.get(CartKeys.ITEMS, []) if
                             item[CartKeys.PRODUCT_ID] in buy_pool_ids)
         if total_buy_qty < buy_req_quantity: return False
+        
         get_products_config = coupon.metadata.get(MetadataKeys.GET_PRODUCTS, [])
         get_pool_ids = {p[CartKeys.PRODUCT_ID] for p in get_products_config}
         for item in cart.get(CartKeys.ITEMS, []):
@@ -129,6 +134,9 @@ class BxGyStrategy(DiscountStrategy):
 
         buy_products_config = coupon.metadata.get(MetadataKeys.BUY_PRODUCTS, [])
         buy_req_quantity = coupon.metadata.get(MetadataKeys.BUY_QUANTITY)
+        if buy_req_quantity is None and buy_products_config:
+            buy_req_quantity = buy_products_config[0].get(MetadataKeys.QUANTITY)
+
         buy_pool_ids = {p[CartKeys.PRODUCT_ID] for p in buy_products_config}
 
         total_buy_qty = sum(item[CartKeys.QUANTITY] for item in cart.get(CartKeys.ITEMS, []) if
@@ -147,7 +155,11 @@ class BxGyStrategy(DiscountStrategy):
 
         get_products_config = coupon.metadata.get(MetadataKeys.GET_PRODUCTS, [])
         get_pool_ids = {p[CartKeys.PRODUCT_ID] for p in get_products_config}
-        get_req_quantity_per_rep = coupon.metadata.get(MetadataKeys.GET_QUANTITY, 1)
+        get_req_quantity_per_rep = coupon.metadata.get(MetadataKeys.GET_QUANTITY)
+        if get_req_quantity_per_rep is None and get_products_config:
+            get_req_quantity_per_rep = get_products_config[0].get(MetadataKeys.QUANTITY, 1)
+        elif get_req_quantity_per_rep is None:
+            get_req_quantity_per_rep = 1
 
         total_get_to_discount = repetitions * get_req_quantity_per_rep
 

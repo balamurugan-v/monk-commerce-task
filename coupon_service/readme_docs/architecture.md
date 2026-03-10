@@ -6,7 +6,7 @@ This document outlines the redesigned architecture for the coupon service, align
 
 ## 1. High-Level Overview
 
-The coupon service is a Flask-based microservice, containerized with Docker, utilizing MongoDB for persistent storage. The architecture emphasizes a clear separation of concerns, with distinct modules for routing, business logic, data access, schema validation, and utilities. Redis integration for caching is planned for future versions.
+The coupon service is a Flask-based microservice, containerized with Docker, utilizing MongoDB for persistent storage. The architecture emphasizes a clear separation of concerns, with distinct modules for routing, business logic, data access, schema validation, and utilities. Redis integration for caching is planned as a future enhancement.
 
 ## 2. Project Structure
 
@@ -44,7 +44,7 @@ coupon_service/
 
 ### 3.1. `main.py`
 -   **Purpose:** The central entry point for the Flask application.
--   **Responsibilities:** Initializes the Flask app, loads configuration (from environment variables), sets up database (MongoDB) and cache (Redis) connections, and registers all API blueprints.
+-   **Responsibilities:** Initializes the Flask app, loads configuration (from environment variables), sets up database (MongoDB) connections, and registers all API blueprints. (Note: Redis caching is planned for future versions).
 
 ### 3.2. `route/`
 -   **Purpose:** Defines all API endpoints and handles the HTTP request/response cycle.
@@ -92,6 +92,6 @@ coupon_service/
 ## 4. Data Storage & Caching
 
 -   **MongoDB:** Used for persistent storage of coupon definitions. The `server/coupon_server.py` handles all interactions.
--   **Redis (Planned):** Redis will be integrated in future versions for caching frequently accessed data and for atomic operations (e.g., managing coupon usage counts).
+-   **Redis (Future Enhancement):** Redis is planned for future versions to provide caching for frequently accessed data and for atomic operations (e.g., managing coupon usage counts).
 
 This redesigned architecture ensures full compliance with the Kissflow project's established patterns.

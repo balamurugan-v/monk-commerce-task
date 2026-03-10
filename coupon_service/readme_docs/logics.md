@@ -1,3 +1,4 @@
+
 # Coupon Logic, Cases, and Error States
 
 This document details the various logical cases, conditions, and positive/negative paths for each coupon type as part of the planning phase.
@@ -121,12 +122,12 @@ These conditions and errors can apply to any coupon type.
     - **Condition:** `coupon_id` not found.
     - **Error (HTTP 404 Not Found):** "Coupon not found."
 
-- ### Expired Coupon (Future Implementation)
+- ### Expired Coupon (Implemented)
     - **Description:** The coupon is used after its expiration date.
     - **Condition:** `current_date > coupon.expires_at`.
-    - **Error (HTTP 400 Bad Request):** "This coupon has expired."
+    - **Error (HTTP 400 Bad Request):** `CouponExpired` error raised with message "Coupon '{coupon_code}' has expired."
 
-- ### Usage Limit Reached (Future Implementation)
+- ### Usage Limit Reached (Implemented)
     - **Description:** The coupon has a global redemption limit which has already been met.
     - **Condition:** `coupon.usage_count >= coupon.usage_limit`.
     - **Error (HTTP 400 Bad Request):** "This coupon is no longer valid."
@@ -184,10 +185,10 @@ This section explicitly defines the features that will be implemented in the ini
 - **Covered Now:**
     - Core API endpoints: `POST /coupons`, `GET /coupons`, `POST /applicable-coupons`, `POST /apply-coupon`.
     - Schema validation for all incoming requests.
+    - Coupon expiration dates (`expires_at`).
     - Dockerized environment for the Flask app, MongoDB, and Redis.
 - **Future Enhancements:**
     - Full CRUD for coupons (`PUT`, `DELETE`, `GET by ID`).
-    - Coupon expiration dates (`expires_at`).
     - Global usage limits.
     - Rules for stacking multiple coupons.
     - User-specific coupons.
@@ -212,7 +213,8 @@ This section explicitly defines the features that will be implemented in the ini
 - **Covered Now:**
     - A simple "Buy X of Product A, Get Y of Product B" logic.
     - A basic repetition limit on the coupon.
+    - Complex "Buy from a set of products, get from another set" logic (Pool Logic).
+    - Rules to automatically discount the cheapest item(s) from the "get" set first.
 - **Future Enhancements:**
-    - Complex "Buy from a set of products, get from another set" logic.
-    - Rules to automatically discount the cheapest item from the "get" set.
+    - Tiered BxGy (e.g., Buy 2 get 1, Buy 5 get 3).
 

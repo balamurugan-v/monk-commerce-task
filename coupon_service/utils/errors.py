@@ -19,6 +19,9 @@ def handle_exception(e: Exception):
     if isinstance(e, CouponAlreadyExists):
         return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.CONFLICT
 
+    if isinstance(e, CouponExpired):
+        return jsonify({ResponseKeys.ERROR: e.message}), HttpStatusCodes.BAD_REQUEST
+
     if isinstance(e, ValueError):
         return jsonify({ResponseKeys.ERROR: str(e)}), HttpStatusCodes.BAD_REQUEST
 

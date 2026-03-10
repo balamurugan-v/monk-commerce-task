@@ -51,6 +51,7 @@ The database uses a flexible schema to support different coupon types. A single 
   "metadata": {
   },
   "status": "string ('active' or 'inactive')",
+  "expires_at": "datetime (ISO)",
   "_created_at": "datetime",
   "_modified_at": "datetime",
   "_created_by": "string",
@@ -68,13 +69,21 @@ The database uses a flexible schema to support different coupon types. A single 
   ```json
   { "product_id": "prod_123", "discount_percentage": 10.00 }
   ```
-- **BxGy (Advanced Pool Logic):**
+- **BxGy (Standard Pool Logic):**
   ```json
   {
     "buy_products": [{"product_id": "prod_A"}, {"product_id": "prod_B"}],
     "buy_quantity": 3,
     "get_products": [{"product_id": "prod_C"}],
     "get_quantity": 1,
+    "repetition_limit": 2
+  }
+  ```
+- **BxGy (PDF Task Format):**
+  ```json
+  {
+    "buy_products": [{"product_id": "prod_A", "quantity": 3}],
+    "get_products": [{"product_id": "prod_C", "quantity": 1}],
     "repetition_limit": 2
   }
   ```
@@ -86,25 +95,11 @@ The system implements a sophisticated **Pool-Based BxGy Strategy**:
 - **Pool Summation:** Sums quantities of all items in the cart belonging to the "Buy" list.
 - **Repetition Logic:** Calculates repetitions using floor division and caps it via `repetition_limit`.
 - **Cheapest First:** Eligible "Get" items are sorted by price ascending, and the cheapest ones are discounted first.
+- **Flexible Metadata:** Supports both top-level quantities (`buy_quantity`) and per-product quantities inside the list (matching the PDF task examples).
 
 ## 6. Item-Level Discount Breakdown (Implemented)
 
 The `apply-coupon` response provides a detailed breakdown of discounts at the item level for full transparency.
-
-**Response Structure Example:**
-```json
-{
-  "updated_cart": {
-    "items": [
-      { "product_id": "P1", "quantity": 6, "price": 50, "total_discount": 0 },
-      { "product_id": "P3", "quantity": 1, "price": 25, "total_discount": 25 } 
-    ],
-    "total_price": 325,
-    "total_discount": 25,
-    "final_price": 300
-  }
-}
-```
 
 ## 7. Considered Use Cases & Edge Cases
 
@@ -119,12 +114,15 @@ The `apply-coupon` response provides a detailed breakdown of discounts at the it
 ### BxGy (Buy X, Get Y) Coupons
 - **Implemented:** "Buy from a set, get from another set" logic.
 - **Repetition limit:** Limits how many times the deal applies per order.
+- **PDF Compatibility:** Implementation updated to handle the metadata structure provided in the Monk Commerce task PDF.
 
-## 8. General/Bonus Cases (Future Implementations)
+### Coupon Expiration (Implemented)
+- **Implemented:** Optional `expires_at` date enforcement. Expired coupons are automatically filtered out from applicable coupons and rejected during application.
 
-- **Coupon Expiration**: Optional `expires_at` date enforcement.
+## 8. Future Implementations
+
 - **Usage Limits**: Total usage count limits (e.g., first 100 customers).
-- **Redis Caching**: Performance optimization for coupon lookups.
+- **Redis Caching**: Performance optimization for coupon lookups and atomic counters.
 
 ## 9. Assumptions
 

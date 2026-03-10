@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
 from coupon_service.models import Coupon
 from coupon_service.server.coupon_server import CouponServer, UserCouponPurchaseServer
-from coupon_service.utils.errors import CouponNotFound, CouponInactive, CouponLimitReachedError
+from coupon_service.utils.errors import CouponNotFound, CouponInactive, CouponLimitReachedError, CouponExpired
 from coupon_service.services.strategy_factory import StrategyFactory
 from coupon_service.utils.constants import CouponStatus, CartKeys, CouponFields, ResponseKeys, MetadataKeys
 
@@ -38,7 +39,7 @@ class CouponService:
     def get_coupon_by_code(self, coupon_code: str) -> Coupon:
         """
         Retrieves a single coupon by its user-facing code.
-        If found but inactive, raises CouponInactive.
+        If found but inactive or expired, raises CouponInactive or ValueError.
         """
         coupon = self.coupon_server.find_by_code(coupon_code, include_inactive=True)
         if not coupon:
@@ -46,6 +47,9 @@ class CouponService:
         
         if coupon.status != CouponStatus.ACTIVE:
             raise CouponInactive(coupon_code)
+
+        if coupon.expires_at and coupon.expires_at < datetime.now(timezone.utc):
+            raise CouponExpired(coupon_code)
             
         return coupon
 
@@ -55,6 +59,9 @@ class CouponService:
         Ensures status defaults to ACTIVE if not provided.
         """
         status = data.get(CouponFields.STATUS, CouponStatus.ACTIVE)
+        expires_at = data.get(CouponFields.EXPIRES_AT)
+        if expires_at and isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
         
         new_coupon = Coupon(
             coupon_code=data[CouponFields.COUPON_CODE],
@@ -62,6 +69,7 @@ class CouponService:
             description=data[CouponFields.DESCRIPTION],
             metadata=data[CouponFields.METADATA],
             status=status,
+            expires_at=expires_at
         )
         return self.coupon_server.insert(new_coupon)
 
@@ -79,6 +87,9 @@ class CouponService:
             is_activating = update_data.get(CouponFields.STATUS) == CouponStatus.ACTIVE
             if not is_activating:
                 raise CouponInactive(coupon_code)
+
+        if update_data.get(CouponFields.EXPIRES_AT) and isinstance(update_data[CouponFields.EXPIRES_AT], str):
+            update_data[CouponFields.EXPIRES_AT] = datetime.fromisoformat(update_data[CouponFields.EXPIRES_AT])
                 
         return self.coupon_server.update_by_code(coupon_code, update_data)
 
@@ -94,8 +105,13 @@ class CouponService:
         """
         all_coupons = self.coupon_server.find_all_active()
         applicable_coupons_info = []
+        now = datetime.now(timezone.utc)
 
         for coupon in all_coupons:
+            # Skip expired coupons
+            if coupon.expires_at and coupon.expires_at < now:
+                continue
+
             try:
                 strategy = self.strategy_factory.get_strategy(coupon.type)
                 if strategy.is_applicable(cart, coupon):
@@ -118,12 +134,8 @@ class CouponService:
         """
         Applies a specific coupon (by code) to the cart.
         """
-        coupon = self.coupon_server.find_by_code(coupon_code, include_inactive=True)
-        if not coupon:
-            raise CouponNotFound(coupon_code)
-            
-        if coupon.status != CouponStatus.ACTIVE:
-            raise CouponInactive(coupon_code)
+        # Use get_coupon_by_code to ensure ACTIVE and NOT EXPIRED
+        coupon = self.get_coupon_by_code(coupon_code)
 
         # Check repetition limit explicitly to raise specific error
         if coupon.metadata.get(MetadataKeys.REPETITION_LIMIT) == 0:

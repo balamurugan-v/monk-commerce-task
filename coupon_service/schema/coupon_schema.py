@@ -46,8 +46,8 @@ class CouponCreateSchema(Schema):
         validate=validate.OneOf([CouponStatus.ACTIVE, CouponStatus.INACTIVE]),
     )
     metadata = fields.Nested(CouponMetadataSchema, required=True)
-    # expires_at and usage_limit are future enhancements, so not required for now
-    # expires_at = fields.DateTime(required=False, format='iso')
+    expires_at = fields.DateTime(required=False, format='iso')
+    # usage_limit is future enhancement, so not required for now
     # usage_limit = fields.Int(required=False, validate=validate.Range(min=1))
 
 
@@ -63,7 +63,7 @@ class CouponUpdateSchema(Schema):
         required=False, validate=validate.OneOf([CouponStatus.ACTIVE, CouponStatus.INACTIVE, CouponStatus.ARCHIVED])
     )
     metadata = fields.Nested(CouponMetadataSchema, required=False)
-    # expires_at = fields.DateTime(required=False, format='iso')
+    expires_at = fields.DateTime(required=False, format='iso')
     # usage_limit = fields.Int(required=False, validate=validate.Range(min=1))
 
 
@@ -74,8 +74,8 @@ class CouponResponseSchema(Schema):
     description = fields.Str(required=True)
     type = fields.Str(required=True)
     status = fields.Str(required=True)
-    metadata = fields.Dict(required=True)  # Can be more specific with Nested schemas for each type
-    # System fields like _id, created_at, updated_at are not exposed in the response schema
+    metadata = fields.Dict(required=True)
+    expires_at = fields.DateTime(required=False, format='iso')
 
 
 class ApplyCouponRequestSchema(Schema):

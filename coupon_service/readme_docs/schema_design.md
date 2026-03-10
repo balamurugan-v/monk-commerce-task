@@ -24,6 +24,7 @@ Each document in the `coupons` collection will represent a single coupon and wil
 | `type` | String | **Discriminator Key.** Defines the coupon type. Must be one of: `cart-wise`, `product-wise`, `bxgy`. | `"cart-wise"` |
 | `description` | String | A user-friendly description of the coupon for display purposes. | `"10% off on orders over $100"` |
 | `metadata` | Object | A flexible sub-document containing the specific rules and conditions that apply to this coupon type. | See examples below. |
+| `expires_at` | ISODate | **(Implemented)** The date and time when the coupon becomes invalid. Optional. | `ISODate("2026-12-31...")` |
 | `_created_at` | ISODate | Timestamp of when the document was created. Automatically managed. | `ISODate("2023-01-28...")` |
 | `_modified_at` | ISODate | Timestamp of the last update. Automatically managed. | `ISODate("2023-01-29...")` |
 | `_created_by` | String | User ID who created the coupon. | `"flobot"` |
@@ -34,8 +35,7 @@ Each document in the `coupons` collection will represent a single coupon and wil
 ### Future Fields (To be implemented)
 
 | Key | Data Type | Description | Example |
-|---|---|---|---|
-| `expires_at`| ISODate | The date and time when the coupon becomes invalid. | `ISODate("2023-12-31...")` |
+|---|---|---|
 | `usage_limit`| Integer | The total number of times this coupon can be used. | `1000` |
 | `usage_count`| Integer | The current count of how many times the coupon has been used. | `150` |
 

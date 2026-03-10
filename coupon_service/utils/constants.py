@@ -34,6 +34,7 @@ class CouponFields:
     TYPE = "type"
     STATUS = "status"
     METADATA = "metadata"
+    EXPIRES_AT = "expires_at"
 
 
 class MetadataKeys:
@@ -46,6 +47,7 @@ class MetadataKeys:
     GET_QUANTITY = "get_quantity"
     FIXED_DISCOUNT_AMOUNT = "fixed_discount_amount"
     REPETITION_LIMIT = "repetition_limit"
+    QUANTITY = "quantity"
 
 
 class CartKeys:
